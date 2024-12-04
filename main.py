@@ -51,8 +51,9 @@ def scrape_website(start_url):
 
     return all_urls
 
-# Save scraped URLs to a file
-def save_results(urls, filename='scraped_urls.txt'):
+# Save scraped URLs to a file with the format: scraped_pages_<start_url>.txt
+def save_results(urls, start_url):
+    filename = f"scraped_pages_{start_url.replace('https://', '').replace('http://', '').replace('/', '_')}.txt"
     with open(filename, 'w', encoding='utf-8') as file:
         for url in urls:
             file.write(url + "\n")
@@ -61,5 +62,8 @@ if __name__ == "__main__":
     start_url = input("Enter the starting URL: ")
     start_time = time.time()
     urls = scrape_website(start_url)
-    save_results(urls)
-    print(f"Scraping completed in {time.time() - start_time:.2f} seconds.")
+    save_results(urls, start_url)
+    end_time = time.time()
+    
+    elapsed_time = end_time - start_time
+    print(f"Scraping completed in {elapsed_time:.2f} seconds.")
