@@ -14,7 +14,7 @@ def scrape_page(url, visited, urls_to_scrape, all_urls):
         response = requests.get(url, timeout=10)
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'html.parser')
-            
+
             # Add the URL to the list of all URLs
             all_urls.add(url)
 
@@ -39,12 +39,16 @@ def scrape_website(start_url):
     # Use a ThreadPoolExecutor to scrape multiple pages concurrently
     with ThreadPoolExecutor(max_workers=10) as executor:
         while urls_to_scrape:
-            # Take one URL from the set and submit the task
-            url = urls_to_scrape.pop()
-            executor.submit(scrape_page, url, visited, urls_to_scrape, all_urls)
-            # Wait for all tasks in the current round to finish before continuing
-            executor.shutdown(wait=True)
+            futures = []
+            # Submit tasks for all URLs currently in the scraping list
+            while urls_to_scrape:
+                url = urls_to_scrape.pop()
+                futures.append(executor.submit(scrape_page, url, visited, urls_to_scrape, all_urls))
             
+            # Wait for all the futures to complete
+            for future in as_completed(futures):
+                future.result()  # If any exception was raised during scraping, it will be raised here.
+
     return all_urls
 
 # Save scraped URLs to a file
