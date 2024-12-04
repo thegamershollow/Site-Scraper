@@ -28,7 +28,8 @@ def scrape_page(url, visited, urls_to_scrape, all_urls):
                 if full_url.startswith('http') and full_url not in visited:
                     urls_to_scrape.add(full_url)
     except requests.RequestException as e:
-        print(f"Error scraping {url}: {e}")
+        # Suppress minor exceptions and log only the critical ones
+        print(f"Error scraping {url}: {e}", file=open("scraper_errors.txt", "a"))
 
 # Main function to start scraping
 def scrape_website(start_url):
@@ -60,10 +61,10 @@ def save_results(urls, start_url):
 
 if __name__ == "__main__":
     start_url = input("Enter the starting URL: ")
-    start_time = time.time()
-    urls = scrape_website(start_url)
-    save_results(urls, start_url)
-    end_time = time.time()
-    
-    elapsed_time = end_time - start_time
+    start_time = time.time()  # Start measuring time
+    urls = scrape_website(start_url)  # Start scraping
+    save_results(urls, start_url)  # Save results to a file
+    end_time = time.time()  # End measuring time
+
+    elapsed_time = end_time - start_time  # Calculate elapsed time
     print(f"Scraping completed in {elapsed_time:.2f} seconds.")
