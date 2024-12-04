@@ -5,7 +5,7 @@ import time
 import urllib.parse
 
 # Function to scrape a single page
-def scrape_page(url, visited, results, urls_to_scrape):
+def scrape_page(url, visited, urls_to_scrape):
     if url in visited:
         return
     visited.add(url)
@@ -14,8 +14,6 @@ def scrape_page(url, visited, results, urls_to_scrape):
         response = requests.get(url, timeout=10)
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'html.parser')
-            # Collect the page content (can be changed to store specific content)
-            results[url] = response.text
 
             # Find all links on the page
             links = soup.find_all('a', href=True)
@@ -31,12 +29,12 @@ def scrape_page(url, visited, results, urls_to_scrape):
 # Main function to start scraping
 def scrape_website(start_url):
     visited = set()  # Set to track visited URLs
-    results = {}     # Dictionary to store URLs and their content
     urls_to_scrape = {start_url}  # Set to keep track of URLs to scrape
+    all_urls = set()  # To store all discovered URLs
 
     # Use a ThreadPoolExecutor to scrape multiple pages concurrently
     with ThreadPoolExecutor(max_workers=10) as executor:
-        futures = {executor.submit(scrape_page, url, visited, results, urls_to_scrape): url for url in urls_to_scrape}
+        futures = {executor.submit(scrape_page, url, visited, urls_to_scrape): url for url in urls_to_scrape}
         
         # Process completed futures
         for future in as_completed(futures):
@@ -46,19 +44,20 @@ def scrape_website(start_url):
             except Exception as e:
                 print(f"Error processing {url}: {e}")
             
-    return results
+            # After scraping, add all new URLs to all_urls set
+            all_urls.update(urls_to_scrape)
 
-# Save scraped content to a file
-def save_results(results, filename='scraped_pages.txt'):
+    return all_urls
+
+# Save scraped URLs to a file
+def save_results(urls, filename='scraped_urls.txt'):
     with open(filename, 'w', encoding='utf-8') as file:
-        for url, content in results.items():
-            file.write(f"URL: {url}\n")
-            file.write(content)
-            file.write("\n" + "="*80 + "\n")
+        for url in urls:
+            file.write(url + "\n")
 
 if __name__ == "__main__":
     start_url = input("Enter the starting URL: ")
     start_time = time.time()
-    results = scrape_website(start_url)
-    save_results(results)
+    urls = scrape_website(start_url)
+    save_results(urls)
     print(f"Scraping completed in {time.time() - start_time:.2f} seconds.")
