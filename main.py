@@ -5,7 +5,7 @@ import time
 import urllib.parse
 
 # Function to scrape a single page
-def scrape_page(url, visited, results):
+def scrape_page(url, visited, results, urls_to_scrape):
     if url in visited:
         return
     visited.add(url)
@@ -36,7 +36,7 @@ def scrape_website(start_url):
 
     # Use a ThreadPoolExecutor to scrape multiple pages concurrently
     with ThreadPoolExecutor(max_workers=10) as executor:
-        futures = {executor.submit(scrape_page, url, visited, results): url for url in urls_to_scrape}
+        futures = {executor.submit(scrape_page, url, visited, results, urls_to_scrape): url for url in urls_to_scrape}
         
         # Process completed futures
         for future in as_completed(futures):
@@ -45,9 +45,7 @@ def scrape_website(start_url):
                 future.result()  # Raise any exception caught during scraping
             except Exception as e:
                 print(f"Error processing {url}: {e}")
-            # Add new URLs to the set for further scraping
-            urls_to_scrape.update([f.url for f in future.result() if f.url not in visited])
-
+            
     return results
 
 # Save scraped content to a file
