@@ -5,15 +5,18 @@ import time
 import urllib.parse
 
 # Function to scrape a single page
-def scrape_page(url, visited, urls_to_scrape):
+def scrape_page(url, visited, urls_to_scrape, all_urls):
     if url in visited:
         return
     visited.add(url)
-    
+
     try:
         response = requests.get(url, timeout=10)
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Add the URL to the list of all URLs
+            all_urls.add(url)
 
             # Find all links on the page
             links = soup.find_all('a', href=True)
@@ -21,7 +24,8 @@ def scrape_page(url, visited, urls_to_scrape):
                 href = link['href']
                 # Resolve relative URLs
                 full_url = urllib.parse.urljoin(url, href)
-                if full_url.startswith('http'):
+                # Only add valid HTTP URLs to scrape list
+                if full_url.startswith('http') and full_url not in visited:
                     urls_to_scrape.add(full_url)
     except requests.RequestException as e:
         print(f"Error scraping {url}: {e}")
@@ -34,19 +38,13 @@ def scrape_website(start_url):
 
     # Use a ThreadPoolExecutor to scrape multiple pages concurrently
     with ThreadPoolExecutor(max_workers=10) as executor:
-        futures = {executor.submit(scrape_page, url, visited, urls_to_scrape): url for url in urls_to_scrape}
-        
-        # Process completed futures
-        for future in as_completed(futures):
-            url = futures[future]
-            try:
-                future.result()  # Raise any exception caught during scraping
-            except Exception as e:
-                print(f"Error processing {url}: {e}")
+        while urls_to_scrape:
+            # Take one URL from the set and submit the task
+            url = urls_to_scrape.pop()
+            executor.submit(scrape_page, url, visited, urls_to_scrape, all_urls)
+            # Wait for all tasks in the current round to finish before continuing
+            executor.shutdown(wait=True)
             
-            # After scraping, add all new URLs to all_urls set
-            all_urls.update(urls_to_scrape)
-
     return all_urls
 
 # Save scraped URLs to a file
