@@ -1,11 +1,10 @@
 import requests
 from bs4 import BeautifulSoup
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 import urllib.parse
 
 # Function to scrape a single page
-def scrape_page(url, visited, urls_to_scrape, all_urls):
+def scrape_page(url, visited, all_urls):
     if url in visited:
         return
     visited.add(url)
@@ -26,7 +25,7 @@ def scrape_page(url, visited, urls_to_scrape, all_urls):
                 full_url = urllib.parse.urljoin(url, href)
                 # Only add valid HTTP URLs to scrape list
                 if full_url.startswith('http') and full_url not in visited:
-                    urls_to_scrape.add(full_url)
+                    all_urls.add(full_url)
     except requests.RequestException as e:
         # Suppress minor exceptions and log only the critical ones
         print(f"Error scraping {url}: {e}", file=open("scraper_errors.txt", "a"))
@@ -34,21 +33,10 @@ def scrape_page(url, visited, urls_to_scrape, all_urls):
 # Main function to start scraping
 def scrape_website(start_url):
     visited = set()  # Set to track visited URLs
-    urls_to_scrape = {start_url}  # Set to keep track of URLs to scrape
     all_urls = set()  # To store all discovered URLs
 
-    # Use a ThreadPoolExecutor to scrape multiple pages concurrently
-    with ThreadPoolExecutor(max_workers=10) as executor:
-        while urls_to_scrape:
-            futures = []
-            # Submit tasks for all URLs currently in the scraping list
-            while urls_to_scrape:
-                url = urls_to_scrape.pop()
-                futures.append(executor.submit(scrape_page, url, visited, urls_to_scrape, all_urls))
-            
-            # Wait for all the futures to complete
-            for future in as_completed(futures):
-                future.result()  # If any exception was raised during scraping, it will be raised here.
+    # Scrape only the starting page's links (no recursion into subpages)
+    scrape_page(start_url, visited, all_urls)
 
     return all_urls
 
